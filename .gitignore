@@ -4,3 +4,5 @@ node_modules/
 .next/
 prisma/dev.db
 certs/
+.playwright-mcp
+logs.txt
