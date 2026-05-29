@@ -5,7 +5,7 @@ import {
   LanguageModelV1Message,
 } from "@ai-sdk/provider";
 
-const MODEL = "claude-haiku-4-5";
+const MODEL = "claude-haiku-4-5-20251001";
 
 export class MockLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = "v1" as const;
@@ -518,5 +518,5 @@ export function getLanguageModel() {
     return new MockLanguageModel("mock-" + MODEL);
   }
 
-  return anthropic(MODEL);
+  return anthropic(MODEL, { cacheControl: true });
 }

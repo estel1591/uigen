@@ -24,6 +24,17 @@ export async function POST(req: Request) {
     },
   });
 
+  // Cache the conversation history up to (but not including) the current user turn
+  if (messages.length > 2) {
+    const lastHistoryIdx = messages.length - 2;
+    messages[lastHistoryIdx] = {
+      ...messages[lastHistoryIdx],
+      providerOptions: {
+        anthropic: { cacheControl: { type: "ephemeral" } },
+      },
+    };
+  }
+
   // Reconstruct the VirtualFileSystem from serialized data
   const fileSystem = new VirtualFileSystem();
   fileSystem.deserializeFromNodes(files);
@@ -41,7 +52,12 @@ export async function POST(req: Request) {
     },
     tools: {
       str_replace_editor: buildStrReplaceTool(fileSystem),
-      file_manager: buildFileManagerTool(fileSystem),
+      file_manager: {
+        ...buildFileManagerTool(fileSystem),
+        experimental_providerMetadata: {
+          anthropic: { cacheControl: { type: "ephemeral" } },
+        },
+      },
     },
     onFinish: async ({ response }) => {
       // Save to project if projectId is provided and user is authenticated
