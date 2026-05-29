@@ -67,3 +67,19 @@ User { id, email, password }
 ### AI Provider
 
 `src/lib/provider.ts` selects between `@ai-sdk/anthropic` (when `ANTHROPIC_API_KEY` is set) and a mock model. The API route uses prompt caching (`experimental_providerMetadata: { anthropic: { cacheControl: { type: 'ephemeral' } } }`) on the system prompt to reduce latency and cost.
+
+### Batches API
+
+`src/lib/batch.ts` wraps the Anthropic [Message Batches API](https://docs.anthropic.com/en/api/creating-message-batches). Use it — **not** `streamText` — when:
+
+- The user wants to generate **multiple components at once** (e.g. a full component library from a list of descriptions)
+- Real-time streaming is **not required** (results arrive asynchronously, within 24 h)
+- Cost matters — batch requests are **50% cheaper** than regular API calls
+
+**Endpoints:**
+- `POST /api/batch` — `{ descriptions: string[] }` → creates a batch job, returns `{ id, anthropicId, status, counts }`
+- `GET /api/batch?id=<id>` — polls status; when `status === "ended"` includes `results[]` with generated `code` per request
+
+**DB model:** `Batch` (see `prisma/schema.prisma`) stores `anthropicId`, `userId`, `status`, and the original `requests` JSON so batch jobs survive server restarts.
+
+**Do NOT use batches for:** single-component generation in the main chat flow — that uses streaming tool calls and needs real-time feedback.

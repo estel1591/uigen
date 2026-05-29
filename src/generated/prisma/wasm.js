@@ -125,6 +125,16 @@ exports.Prisma.UserScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.BatchScalarFieldEnum = {
+  id: 'id',
+  anthropicId: 'anthropicId',
+  userId: 'userId',
+  status: 'status',
+  requests: 'requests',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.ProjectScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -148,6 +158,7 @@ exports.Prisma.NullsOrder = {
 
 exports.Prisma.ModelName = {
   User: 'User',
+  Batch: 'Batch',
   Project: 'Project'
 };
 
