@@ -17,6 +17,7 @@ vi.mock("next/headers", () => ({
 vi.mock("ai", () => ({
   streamText: mockStreamText,
   appendResponseMessages: vi.fn(() => []),
+  convertToCoreMessages: vi.fn((msgs: any[]) => msgs),
 }));
 vi.mock("@/lib/provider", () => ({
   getLanguageModel: vi.fn(() => ({ modelId: "mock" })),
@@ -152,30 +153,32 @@ describe("conversation history cache_control", () => {
   });
 });
 
-// --- Tool caching ---
+// --- Tool definitions passed to streamText ---
+// Tool-level cache_control is injected by fetchWithToolCache in provider.ts,
+// not here — so tools are passed through as-is from their builders.
 
-describe("tool definitions cache_control", () => {
-  test("file_manager tool has experimental_providerMetadata with ephemeral cacheControl", async () => {
+describe("tool definitions passed to streamText", () => {
+  test("both tools are registered", async () => {
     await POST(makeRequest([userMsg("hello")]));
 
     const { tools } = mockStreamText.mock.calls[0][0];
-    expect(tools.file_manager.experimental_providerMetadata).toEqual({
-      anthropic: { cacheControl: { type: "ephemeral" } },
-    });
+    expect(tools).toHaveProperty("str_replace_editor");
+    expect(tools).toHaveProperty("file_manager");
   });
 
-  test("str_replace_editor tool does not have experimental_providerMetadata", async () => {
+  test("tools are passed without experimental_providerMetadata (cache injected by fetch interceptor)", async () => {
     await POST(makeRequest([userMsg("hello")]));
 
     const { tools } = mockStreamText.mock.calls[0][0];
     expect(tools.str_replace_editor.experimental_providerMetadata).toBeUndefined();
+    expect(tools.file_manager.experimental_providerMetadata).toBeUndefined();
   });
 
-  test("file_manager retains its original tool properties alongside cacheControl", async () => {
+  test("tool objects retain their original properties from the builders", async () => {
     await POST(makeRequest([userMsg("hello")]));
 
     const { tools } = mockStreamText.mock.calls[0][0];
-    expect(tools.file_manager.description).toBe("file_manager");
-    expect(tools.file_manager.execute).toBe(mockFileManagerTool.execute);
+    expect(tools.str_replace_editor).toBe(mockStrReplaceTool);
+    expect(tools.file_manager).toBe(mockFileManagerTool);
   });
 });

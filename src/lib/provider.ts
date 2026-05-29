@@ -1,4 +1,4 @@
-import { anthropic } from "@ai-sdk/anthropic";
+import { createAnthropic } from "@ai-sdk/anthropic";
 import {
   LanguageModelV1,
   LanguageModelV1StreamPart,
@@ -506,6 +506,24 @@ export default function App() {
   }
 }
 
+// Intercepts every Anthropic API request to inject cache_control on the last
+// tool definition. The Vercel AI SDK omits this field, but Anthropic needs it
+// to cache the system-prompt + tools block (system alone is too short for the
+// 2048-token minimum on Haiku).
+async function fetchWithToolCache(
+  url: RequestInfo | URL,
+  init?: RequestInit
+): Promise<Response> {
+  if (init?.body) {
+    const body = JSON.parse(init.body as string);
+    if (Array.isArray(body.tools) && body.tools.length > 0) {
+      body.tools[body.tools.length - 1].cache_control = { type: "ephemeral" };
+    }
+    return fetch(url, { ...init, body: JSON.stringify(body) });
+  }
+  return fetch(url, init);
+}
+
 export function getLanguageModel() {
   const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
 
@@ -518,5 +536,6 @@ export function getLanguageModel() {
     return new MockLanguageModel("mock-" + MODEL);
   }
 
+  const anthropic = createAnthropic({ fetch: fetchWithToolCache });
   return anthropic(MODEL, { cacheControl: true });
 }
